@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-document-get"
+description = "Enables the document_get command without any pre-configured scope."
+commands.allow = ["document_get"]
+
+[[permission]]
+identifier = "deny-document-get"
+description = "Denies the document_get command without any pre-configured scope."
+commands.deny = ["document_get"]

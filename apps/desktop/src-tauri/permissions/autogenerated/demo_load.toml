@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-demo-load"
+description = "Enables the demo_load command without any pre-configured scope."
+commands.allow = ["demo_load"]
+
+[[permission]]
+identifier = "deny-demo-load"
+description = "Denies the demo_load command without any pre-configured scope."
+commands.deny = ["demo_load"]

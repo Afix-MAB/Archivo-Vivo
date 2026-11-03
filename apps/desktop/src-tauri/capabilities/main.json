@@ -1,0 +1,7 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "main",
+  "description": "Ventana local: solo comandos del índice demo; sin shell, HTTP ni acceso genérico a archivos.",
+  "windows": ["main"],
+  "permissions": ["core:default", "allow-demo-load", "allow-search", "allow-document-get", "allow-index-status", "allow-index-clear"]
+}

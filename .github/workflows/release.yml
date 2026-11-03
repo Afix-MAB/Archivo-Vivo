@@ -1,0 +1,82 @@
+name: Instaladores y release
+on:
+  workflow_dispatch:
+  push:
+    tags: ['v*']
+permissions:
+  contents: read
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-22.04
+            args: '--bundles deb,appimage'
+            name: linux-x64
+          - os: windows-latest
+            args: '--bundles nsis,msi'
+            name: windows-x64
+          - os: macos-15
+            args: '--target aarch64-apple-darwin --bundles app,dmg'
+            name: macos-arm64
+          - os: macos-15-intel
+            args: '--target x86_64-apple-darwin --bundles app,dmg'
+            name: macos-x64
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: 'aarch64-apple-darwin,x86_64-apple-darwin'
+      - name: Dependencias Linux
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y libwebkit2gtk-4.1-dev build-essential libssl-dev librsvg2-dev libayatana-appindicator3-dev patchelf
+      - run: npm ci
+        working-directory: apps/desktop
+      - run: npm run lint && npm test && npm run build
+        working-directory: apps/desktop
+      - run: cargo test -p archivo-vivo-core --locked
+      - name: Compilar instaladores
+        working-directory: apps/desktop
+        run: npm run tauri -- build ${{ matrix.args }}
+        env:
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.name }}
+          if-no-files-found: error
+          path: |
+            target/**/bundle/**/*.deb
+            target/**/bundle/**/*.AppImage
+            target/**/bundle/**/*.exe
+            target/**/bundle/**/*.msi
+            target/**/bundle/**/*.dmg
+  publish:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: build
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: installers
+          merge-multiple: true
+      - name: Checksums reales
+        run: python3 -c "from pathlib import Path; import hashlib; p=Path('installers'); files=sorted(x for x in p.rglob('*') if x.is_file()); (p/'SHA256SUMS.txt').write_text(''.join(hashlib.sha256(x.read_bytes()).hexdigest()+'  '+str(x.relative_to(p))+'\n' for x in files))"
+      - uses: softprops/action-gh-release@v2
+        with:
+          draft: true
+          prerelease: true
+          name: 'Archivo Vivo ${{ github.ref_name }} — andamiaje demo'
+          body: 'Demo inicial; no incluye todavía indexador personal, OCR ni embeddings. No publicar como versión final. Véase docs/EMPAQUETADO.md para puertas de firma y QA.'
+          files: installers/**/*

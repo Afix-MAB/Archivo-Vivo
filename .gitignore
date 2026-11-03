@@ -1,0 +1,13 @@
+node_modules/
+dist/
+target/
+__pycache__/
+*.db
+*.db-wal
+*.db-shm
+apps/desktop/src-tauri/gen/
+.env
+.env.*
+.DS_Store
+resources/models/*.onnx
+resources/ocr/*.traineddata
